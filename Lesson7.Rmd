@@ -1,0 +1,92 @@
+---
+title: "Assignment Lesson 7"
+author: "Team Zeven: Rob Maas &Wilmar van Ommeren"
+date: "Wednesday, January 14, 2015"
+output: html_document
+---
+
+```{r table}
+```{r, echo=FALSE, message=FALSE}
+library(knitr)
+opts_chunk$set(fig.width=5, fig.align='center', fig.height=5, dpi=72)
+```
+###Table of Contents
+
+###1 Description
+
+[Link to Github](https://github.com/Boonalds/Lesson7_TeamZeven.git)
+
+###2 Methodology
+####2.1 plot the relationship between the LandSat bands and the VCF tree cover
+For the first part of this exercise we use two libraries, some LandSat
+bands and the VCF Tree Cover product.
+
+```{r loading, message=FALSE, include=TRUE, results='hide'}
+# Load libraries
+library(sp) 
+library(raster)
+
+# Load data
+load("Data/GewataB1.rda")
+load("Data/GewataB5.rda")
+load("Data/GewataB7.rda")
+load("Data/vcfGewata.rda")
+```
+
+```{r loading extra, message=FALSE, include=FALSE, results='hide'}
+load("Data/GewataB2.rda")
+load("Data/GewataB3.rda")
+load("Data/GewataB4.rda")
+```
+
+Not all the data in the VCF product is correct, some pixels contain more then 100 percent of tree cover(as can be seen in the histogram). This erroneous data is probably  caused by cloudcover, water or cloudshadow pixels. Before plotting the data the high values are removed.
+
+```{r VCFsummary, include=T, message=FALSE}
+hist(vcfGewata)
+```
+
+
+```{r VCFtransform}
+# Transform VCF
+vcfGewata[vcfGewata > 100] <- NA
+```
+
+After the removal of the redundant data of the VCF product the bands need to be rescaled. The values of the bands are stored as an integer to save file storage space, but reflectance values have an original scale from 0 to 1.
+
+By producing a rasterbrick we can rescale all bands at once. After this transformation the VCF layer is added to the brick and all layers are named properly
+
+
+```{r Bandstransform, message=FALSE, include=TRUE, results='hide'}
+rasterbrick <- brick(GewataB1, GewataB2, GewataB3, GewataB4, GewataB5, GewataB7)
+rasterbrick <- calc(rasterbrick, fun=function(x) x / 10000)
+rasterbrick <- addLayer(rasterbrick, vcfGewata)
+names(rasterbrick) <- c("Band1","Band2", "Band3", "Band4", "Band5", "Band7", "VCF")
+
+```
+
+Now all values will be converted to a dataframe. This will make the plotting possible. First all values are extracted from the rasterbrick. secondly the values are convertet to a data frame. The first 10 rows are shown below.
+
+```{r RastertoData, message=FALSE, include=TRUE, results='hide'}
+rasterbrickData <- getValues(rasterbrick)
+rasterbrickData <- as.data.frame(rasterbrickData, na.rm=T)
+```
+
+```{r headRastertoData, message=FALSE, include=TRUE}
+head(rasterbrickData)
+```
+
+After this conversion the plot can be made.
+
+```{r Plotcorrelation, message=FALSE, include=TRUE}
+# Plotting correlation between VCF and different LandSat bands
+plot(VCF ~ Band1, data = rasterbrickData, pch = ".", col = "orange", 
+     main="Correlation between VCF and LandSat bands", 
+     xlab="Reflectance of LandSat bands", ylab="VCF [%]", 
+     xlim=c(0,0.5), ylim=c(0,100))
+
+points(VCF ~ Band5, data = rasterbrickData, pch = ".", col = "dark green")
+points(VCF ~ Band7, data = rasterbrickData, pch = ".", col = "light blue")
+legend(0.37, 100, box.col='white', legend=c("Band 1", "Band 5", "Band 7"),
+       fill=c("orange", "dark green", "light blue"), bg="white")
+```
+
