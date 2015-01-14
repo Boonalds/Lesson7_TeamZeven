@@ -37,7 +37,7 @@ rasterbrickData <- as.data.frame(rasterbrickData, na.rm=T)
 plot(VCF ~ Band1, data = rasterbrickData, pch = ".", col = "orange", main="Correlation between VCF and LandSat bands", xlab="Reflectance of LandSat bands", ylab="VCF [%]", xlim=c(0,0.5), ylim=c(0,100))
 points(VCF ~ Band5, data = rasterbrickData, pch = ".", col = "dark green")
 points(VCF ~ Band7, data = rasterbrickData, pch = ".", col = "light blue")
-legend(0.37, 100, box.col='white', legend=c("Band1", "Band5", "Band7"), fill=c("orange", "dark green", "light blue"), bg="white")
+legend(0.37, 100, box.col='white', legend=c("Band 1", "Band 5", "Band 7"), fill=c("orange", "dark green", "light blue"), bg="white")
 
 # Creating linear regression model
 model157 <- lm(VCF ~ Band1+Band5+Band7, rasterbrickData, na.action=na.omit)
@@ -75,3 +75,4 @@ RMSE_wet <- calculate.RMSE.class(trainingOri, trainingPred,3)
 
 paste("RMSE of cropland, forest and wetland are",format(round(RMSE_crop, 2), nsmall = 2),",",
       format(round(RMSE_for, 2), nsmall = 2),"and",format(round(RMSE_wet, 2), nsmall = 2),"respectively.")
+
