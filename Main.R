@@ -4,6 +4,7 @@
 # Load libraries:
 library(sp) 
 library(raster)
+library(RColorBrewer)
 
 # Load source scripts:
 source("R/calculate.RMSE.R")
@@ -19,8 +20,6 @@ load("Data/GewataB5.rda")
 load("Data/GewataB7.rda")
 load("Data/vcfGewata.rda")
 load("Data/trainingPoly.rda")
-
-opar <- par(mfrow=c(1,1))
 
 # Transform data
 vcfGewata[vcfGewata > 100] <- NA
@@ -53,10 +52,13 @@ VCFpredict[VCFpredict < 0] <- NA
 VCFpredict[VCFpredict > 100] <- NA
 
 # Comparing predicted and original VCF
-par(mfrow=c(1,2))
-plot(rasterbrick$VCF, main="Original VCF")
-plot(VCFpredict,main="Predicted VCF")
-par(opar)
+colorPal <- rev(colorRampPalette(c("darkgreen","yellow","brown"))(20)) # Create color palette
+
+plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal)
+plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal)
+
+print(plot1, position = c(0,0,.5,1),more = T)
+print(plot2, position = c(.5,0,1,1),more = T)
 
 # Calculating RMSE
 RMSEpredict <- calculate.RMSE(rasterbrick$VCF, VCFpredict)

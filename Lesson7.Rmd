@@ -2,7 +2,12 @@
 title: "Assignment Lesson 7"
 author: "Team Zeven: Rob Maas &Wilmar van Ommeren"
 date: "Wednesday, January 14, 2015"
-output: html_document
+output:
+  html_document:
+    theme: cosmo
+    toc: yes
+    toc_depth: 4
+    number_sections: true
 ---
 
 ```{r table}
@@ -10,14 +15,12 @@ output: html_document
 library(knitr)
 opts_chunk$set(fig.width=7, fig.align='center', fig.height=7, dpi=72)
 ```
-###Table of Contents
-
-###1 Description
+# Description
 
 [Link to Github repository](https://github.com/Boonalds/Lesson7_TeamZeven.git)
 
-###2 Methodology
-####2.1 Plot the relationship between the LandSat bands and the VCF tree cover
+# Methodology
+## Plot the relationship between the LandSat bands and the VCF tree cover
 For the first part of this exercise we use two libraries, some LandSat
 bands and the VCF Tree Cover product.
 
@@ -25,6 +28,7 @@ bands and the VCF Tree Cover product.
 # Load libraries
 library(sp) 
 library(raster)
+library(RColorBrewer)
 
 # Load data
 load("Data/GewataB1.rda")
@@ -92,7 +96,7 @@ legend(0.37, 100, box.col='white', legend=c("Band 1", "Band 5", "Band 7"),
        fill=c("orange", "dark green", "light blue"), bg="white")
 ```
 
-####2.2 Create a model and show a summary of the model object
+## Create a model and show a summary of the model object
 In this step to models are created. The first one creates a regression formula from the correlation between LandSat bands 1,5 and 7. The second one takes all bands except the thermal band into account.
 
 ```{r Models, message=FALSE, include=TRUE, results='hide'}
@@ -110,7 +114,7 @@ summary(model157)
 summary(modelAll)
 ```
 
-####2.3 Plot the predicted tree cover raster and compare it with the original
+## Plot the predicted tree cover raster and compare it with the original
 
 The created models can be used to predict the treecover. For this prediction the 'predict' function is called. A name is assigned to the new raster object and again all possible redundant data is removed (e.g pixels with less than 0 percent tree cover)
 
@@ -124,11 +128,15 @@ VCFpredict[VCFpredict > 100] <- NA
 
 To check the results of the prediction, the predicted VCF Tree cover raster can now be compared to the original master. If the model is working properly the resulting plots should be mostly the same.
 
-```{r compareVCF, message=FALSE, include=TRUE}
+```{r compareVCF, message=FALSE, include=TRUE, strip.white=TRUE, fig.width=14}
 # Comparing predicted and original VCF
-opar<- par(mfrow=c(1,2)) # allow to plots side by side
-plot(rasterbrick$VCF, main="Original VCF")
-plot(VCFpredict,main="Predicted VCF")
-par(opar) # reset plotting window
+colorPal <- rev(colorRampPalette(c("darkgreen","yellow","brown"))(20)) # Create color palette
+plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal)
+plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal)
+print(plot1, position = c(0,0,.5,1),more = T)
+print(plot2, position = c(.5,0,1,1),more = T)
 ```
 
+## Compute the RMSE between your predicted and the original VCF
+
+## Compute the RMSE between your predicted and the original VCF for the 3 classes in the TraininPolygon
