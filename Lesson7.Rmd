@@ -1,6 +1,6 @@
 ---
 title: "Assignment Lesson 7"
-author: "Team Zeven: Rob Maas &Wilmar van Ommeren"
+author: "Team Zeven: Rob Maas & Wilmar van Ommeren"
 date: "Wednesday, January 14, 2015"
 output:
   html_document:
@@ -41,6 +41,7 @@ load("Data/vcfGewata.rda")
 load("Data/GewataB2.rda")
 load("Data/GewataB3.rda")
 load("Data/GewataB4.rda")
+load("Data/trainingPoly.rda")
 ```
 
 Not all the data in the VCF product is correct, some pixels contain more then 100 percent of tree cover(as can be seen in the histogram). This erroneous data is probably  caused by cloudcover, water or cloudshadow pixels. Before plotting the data the high values are removed.
@@ -126,6 +127,7 @@ VCFpredict[VCFpredict < 0] <- NA
 VCFpredict[VCFpredict > 100] <- NA
 ```
 
+## Calculate RMSE between predicted and original rasters
 To check the results of the prediction, the predicted VCF Tree cover raster can now be compared to the original master. If the model is working properly the resulting plots should be mostly the same.
 
 ```{r compareVCF, message=FALSE, include=TRUE, strip.white=TRUE, fig.width=14}
@@ -137,6 +139,34 @@ print(plot1, position = c(0,0,.5,1),more = T)
 print(plot2, position = c(.5,0,1,1),more = T)
 ```
 
-## Compute the RMSE between your predicted and the original VCF
+And indication of the error of the prediction of the VCF is given by the RMSE (Root Mean Square Error), more information can be found on [wikipedia](http://en.wikipedia.org/wiki/Root-mean-square_deviation). A function is made which returns the RMSE between two raster inputs; the original and predicted raster.
 
-## Compute the RMSE between your predicted and the original VCF for the 3 classes in the TraininPolygon
+```{r Calculating RMSE, message=FALSE, include=TRUE, results='show'}
+source("R/calculate.RMSE.R")
+RMSEpredict <- calculate.RMSE(rasterbrick$VCF, VCFpredict)
+```
+
+## Calculate RMSE per class
+To investigate whether each class can be predicted equally good by the same model, the RMSE between the predicted and original values of the trainingPolygons is calculated per class. First the VCF of the trainingspolygons have to be extracted from both the original and the predicted raster and then the classes are linked to the right polygon. This is done in a seperate function.
+
+```{r retreiving trainingsPolygon data, message=FALSE, include=TRUE, results='hide'}
+source("R/mask.trainingdata.R")
+trainingOri <- mask.trainingdata(rasterbrick$VCF, trainingPoly)
+trainingPred <- mask.trainingdata(VCFpredict, trainingPoly)
+```
+
+Then the RMSE's are calculated per classes.
+```{r Calculating RMSE per class, message=FALSE, include=TRUE, results='show'}
+source("R/calculate.RMSE.class.R")
+## Calculating RMSE per class
+RMSE_crop <- calculate.RMSE.class(trainingOri, trainingPred,1)
+RMSE_for <- calculate.RMSE.class(trainingOri, trainingPred,2)
+RMSE_wet <- calculate.RMSE.class(trainingOri, trainingPred,3)
+```
+
+And printed to compare them:
+```{r Print RMSE per class, message=FALSE, include=TRUE}
+paste("RMSE of cropland, forest and wetland are",format(round(RMSE_crop, 2), nsmall = 2),",",
+      format(round(RMSE_for, 2), nsmall = 2),"and",format(round(RMSE_wet, 2), nsmall = 2),"respectively.")
+```
+Apparently some classes are predicted better then others.
