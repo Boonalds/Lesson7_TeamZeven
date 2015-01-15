@@ -13,11 +13,12 @@ output:
 ```{r table}
 ```{r, echo=FALSE, message=FALSE}
 library(knitr)
-opts_chunk$set(fig.width=7, fig.align='center', fig.height=7, dpi=72)
+opts_chunk$set(fig.width=7, fig.align='center', fig.height=7, dpi=100)
 ```
 # Description
+This Rpub Document includes the assignment of [Geo-Scripting Lesson 7](https://geoscripting-wur.github.io/AdvancedRasterAnalysis/). In this Lesson LandSat bands are used to predict the tree cover with a linear regression model.
 
-[Link to Github repository](https://github.com/Boonalds/Lesson7_TeamZeven.git)
+Link to github: [https://github.com/Boonalds/Lesson7_TeamZeven.git](https://github.com/Boonalds/Lesson7_TeamZeven.git)
 
 # Methodology
 ## Plot the relationship between the LandSat bands and the VCF tree cover
@@ -127,7 +128,6 @@ VCFpredict[VCFpredict < 0] <- NA
 VCFpredict[VCFpredict > 100] <- NA
 ```
 
-## Calculate RMSE between predicted and original rasters
 To check the results of the prediction, the predicted VCF Tree cover raster can now be compared to the original master. If the model is working properly the resulting plots should be mostly the same.
 
 ```{r compareVCF, message=FALSE, include=TRUE, strip.white=TRUE, fig.width=14}
@@ -139,15 +139,43 @@ print(plot1, position = c(0,0,.5,1),more = T)
 print(plot2, position = c(.5,0,1,1),more = T)
 ```
 
+## Calculate RMSE between predicted and original rasters
+
 And indication of the error of the prediction of the VCF is given by the RMSE (Root Mean Square Error), more information can be found on [wikipedia](http://en.wikipedia.org/wiki/Root-mean-square_deviation). A function is made which returns the RMSE between two raster inputs; the original and predicted raster.
 
-```{r Calculating RMSE, message=FALSE, include=TRUE, results='show'}
+```{r Calculating RMSE, message=FALSE, include=TRUE}
 source("R/calculate.RMSE.R")
 RMSEpredict <- calculate.RMSE(rasterbrick$VCF, VCFpredict)
+paste("The RMSE is", format(round(RMSEpredict,2), nsmall = 2))
+```
+
+The function that is used for the RMSE calculation is shown below.
+
+```{r Function RMSE, message=FALSE, include=TRUE}
+calculate.RMSE <- function (x,y){
+  # x is Original VCF layer, y is the Predicted VCF layer
+  minus<-x-y
+  square<-minus^2
+  mean<-cellStats(square, 'mean')
+  RMSE <- sqrt(mean)
+  return(RMSE)
+}
 ```
 
 ## Calculate RMSE per class
 To investigate whether each class can be predicted equally good by the same model, the RMSE between the predicted and original values of the trainingPolygons is calculated per class. First the VCF of the trainingspolygons have to be extracted from both the original and the predicted raster and then the classes are linked to the right polygon. This is done in a seperate function.
+
+```{r Function mask, message=FALSE, include=TRUE}
+mask.trainingdata <- function(x,y){
+  # x is a VCF raster, y stands for the training areas
+  trainingareas <- mask(x,y)
+  y@data$Code <- as.numeric(y@data$Class) #select the variable code from the trainingareas
+  classes <- rasterize(trainingPoly, x, field = 'Class') #convert the date to a raster
+  names(classes) <- 'Class' 
+  trainingclass <- addLayer(trainingareas, classes) #add the new layer
+  return(trainingclass)
+}
+```
 
 ```{r retreiving trainingsPolygon data, message=FALSE, include=TRUE, results='hide'}
 source("R/mask.trainingdata.R")
@@ -155,8 +183,21 @@ trainingOri <- mask.trainingdata(rasterbrick$VCF, trainingPoly)
 trainingPred <- mask.trainingdata(VCFpredict, trainingPoly)
 ```
 
-Then the RMSE's are calculated per classes.
-```{r Calculating RMSE per class, message=FALSE, include=TRUE, results='show'}
+Then the RMSE's are calculated per classes. Again a seperate function is used to select the classes.
+
+```{r Function class, message=FALSE, include=TRUE}
+calculate.RMSE.class <- function(r1,r2,class){
+  # r1 is the original VCF data in the training area, r2 is the Predicted VCF. 
+  r1sub <- r1$VCF #select the VCF column
+  r1sub[r1$Class != class] <- NA #all values in unwanted classes are set to NA
+  r2sub <- r2$VCF
+  r2sub[r2$Class != class] <- NA
+  RMSEsub <- calculate.RMSE(r1sub,r2sub)
+  return(RMSEsub)
+}
+```
+
+```{r Calculating RMSE per class, message=FALSE, include=TRUE}
 source("R/calculate.RMSE.class.R")
 ## Calculating RMSE per class
 RMSE_crop <- calculate.RMSE.class(trainingOri, trainingPred,1)
@@ -169,4 +210,5 @@ And printed to compare them:
 paste("RMSE of cropland, forest and wetland are",format(round(RMSE_crop, 2), nsmall = 2),",",
       format(round(RMSE_for, 2), nsmall = 2),"and",format(round(RMSE_wet, 2), nsmall = 2),"respectively.")
 ```
-Apparently some classes are predicted better then others.
+
+Apparently some classes are predicted better then others. This can be caused because there are not enough training areas to define a class or classes can overlap each others.
