@@ -54,15 +54,26 @@ VCFpredict[VCFpredict > 100] <- NA
 # Comparing predicted and original VCF
 colorPal <- rev(colorRampPalette(c("darkgreen","yellow","brown"))(20)) # Create color palette
 
-plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal)
-plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal)
-
+plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal, 
+              sp.layout=list(list("SpatialPolygonsRescale", layout.north.arrow(), 
+                                  offset=c(850000, 845000), scale=7000, fill=c('white','black')), 
+                             list("SpatialPolygonsRescale", layout.scale.bar(),
+                                  offset=c(842000, 820000), scale=10000, fill=c('white','black')),
+                             list("sp.text", c(842000, 821500), "0", font=2),
+                             list("sp.text", c(852000, 821500), "10 km", font=2)))
+plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal, 
+              sp.layout=list(list("SpatialPolygonsRescale", layout.north.arrow(), 
+                                  offset=c(850000, 845000), scale=7000, fill=c('white','black')), 
+                             list("SpatialPolygonsRescale", layout.scale.bar(),
+                                  offset=c(842000, 820000), scale=10000, fill=c('white','black')),
+                             list("sp.text", c(842000, 821500), "0", font=2),
+                             list("sp.text", c(852000, 821500), "10 km", font=2)))
 print(plot1, position = c(0,0,.5,1),more = T)
-print(plot2, position = c(.5,0,1,1),more = T)
+print(plot2, position = c(0.5,0,1,1),more = T)
 
 # Calculating RMSE
 RMSEpredict <- calculate.RMSE(rasterbrick$VCF, VCFpredict)
-RMSEpredict
+paste("RMSE of the VCF prediction is", RMSEpredict)
 
 ## Compare RMSE's of different classes
 
@@ -77,4 +88,3 @@ RMSE_wet <- calculate.RMSE.class(trainingOri, trainingPred,3)
 
 paste("RMSE of cropland, forest and wetland are",format(round(RMSE_crop, 2), nsmall = 2),",",
       format(round(RMSE_for, 2), nsmall = 2),"and",format(round(RMSE_wet, 2), nsmall = 2),"respectively.")
-

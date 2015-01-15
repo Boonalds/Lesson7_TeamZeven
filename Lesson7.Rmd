@@ -13,7 +13,7 @@ output:
 ```{r table}
 ```{r, echo=FALSE, message=FALSE}
 library(knitr)
-opts_chunk$set(fig.width=7, fig.align='center', fig.height=7, dpi=100)
+opts_chunk$set(fig.width=5, fig.align='center', fig.height=5, dpi=75)
 ```
 # Description
 This Rpub Document includes the assignment of [Geo-Scripting Lesson 7](https://geoscripting-wur.github.io/AdvancedRasterAnalysis/). In this Lesson LandSat bands are used to predict the tree cover with a linear regression model.
@@ -48,7 +48,7 @@ load("Data/trainingPoly.rda")
 Not all the data in the VCF product is correct, some pixels contain more then 100 percent of tree cover(as can be seen in the histogram). This erroneous data is probably  caused by cloudcover, water or cloudshadow pixels. Before plotting the data the high values are removed.
 
 ```{r VCFsummary, include=T, message=FALSE}
-hist(vcfGewata)
+hist(vcfGewata, main="Frequency per value in vcfGewata", xlab="Value")
 ```
 
 
@@ -133,8 +133,20 @@ To check the results of the prediction, the predicted VCF Tree cover raster can 
 ```{r compareVCF, message=FALSE, include=TRUE, strip.white=TRUE, fig.width=14}
 # Comparing predicted and original VCF
 colorPal <- rev(colorRampPalette(c("darkgreen","yellow","brown"))(20)) # Create color palette
-plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal)
-plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal)
+plot1<-spplot(rasterbrick$VCF, main="Original VCF", col.regions = colorPal, 
+              sp.layout=list(list("SpatialPolygonsRescale", layout.north.arrow(), #Create north arrow
+                                  offset=c(850000, 845000), scale=7000, fill=c('white','black')), 
+                             list("SpatialPolygonsRescale", layout.scale.bar(), #Create scale bar
+                                  offset=c(842000, 820000), scale=10000, fill=c('white','black')),
+                             list("sp.text", c(842000, 821500), "0", font=2), #Add text to scale bar
+                             list("sp.text", c(852000, 821500), "10 km", font=2)))
+plot2<-spplot(VCFpredict,main="Predicted VCF", col.regions = colorPal, 
+              sp.layout=list(list("SpatialPolygonsRescale", layout.north.arrow(), 
+                                  offset=c(850000, 845000), scale=7000, fill=c('white','black')), 
+                             list("SpatialPolygonsRescale", layout.scale.bar(),
+                                  offset=c(842000, 820000), scale=10000, fill=c('white','black')),
+                             list("sp.text", c(842000, 821500), "0", font=2),
+                             list("sp.text", c(852000, 821500), "10 km", font=2)))
 print(plot1, position = c(0,0,.5,1),more = T)
 print(plot2, position = c(.5,0,1,1),more = T)
 ```
@@ -165,26 +177,35 @@ calculate.RMSE <- function (x,y){
 ## Calculate RMSE per class
 To investigate whether each class can be predicted equally good by the same model, the RMSE between the predicted and original values of the trainingPolygons is calculated per class. First the VCF of the trainingspolygons have to be extracted from both the original and the predicted raster and then the classes are linked to the right polygon. This is done in a seperate function.
 
+```{r retreiving trainingsPolygon data, message=FALSE, include=TRUE, results='hide'}
+source("R/mask.trainingdata.R")
+trainingOri <- mask.trainingdata(rasterbrick$VCF, trainingPoly)
+trainingPred <- mask.trainingdata(VCFpredict, trainingPoly)
+```
+With the following masking function:
 ```{r Function mask, message=FALSE, include=TRUE}
 mask.trainingdata <- function(x,y){
   # x is a VCF raster, y stands for the training areas
   trainingareas <- mask(x,y)
   y@data$Code <- as.numeric(y@data$Class) #select the variable code from the trainingareas
-  classes <- rasterize(trainingPoly, x, field = 'Class') #convert the date to a raster
+  classes <- rasterize(trainingPoly, x, field = 'Class') #convert the data to a raster
   names(classes) <- 'Class' 
   trainingclass <- addLayer(trainingareas, classes) #add the new layer
   return(trainingclass)
 }
 ```
 
-```{r retreiving trainingsPolygon data, message=FALSE, include=TRUE, results='hide'}
-source("R/mask.trainingdata.R")
-trainingOri <- mask.trainingdata(rasterbrick$VCF, trainingPoly)
-trainingPred <- mask.trainingdata(VCFpredict, trainingPoly)
-```
 
 Then the RMSE's are calculated per classes. Again a seperate function is used to select the classes.
+```{r Calculating RMSE per class, message=FALSE, include=TRUE}
+source("R/calculate.RMSE.class.R")
+## Calculating RMSE per class
+RMSE_crop <- calculate.RMSE.class(trainingOri, trainingPred,1)
+RMSE_for <- calculate.RMSE.class(trainingOri, trainingPred,2)
+RMSE_wet <- calculate.RMSE.class(trainingOri, trainingPred,3)
+```
 
+With the following function:
 ```{r Function class, message=FALSE, include=TRUE}
 calculate.RMSE.class <- function(r1,r2,class){
   # r1 is the original VCF data in the training area, r2 is the Predicted VCF. 
@@ -195,14 +216,6 @@ calculate.RMSE.class <- function(r1,r2,class){
   RMSEsub <- calculate.RMSE(r1sub,r2sub)
   return(RMSEsub)
 }
-```
-
-```{r Calculating RMSE per class, message=FALSE, include=TRUE}
-source("R/calculate.RMSE.class.R")
-## Calculating RMSE per class
-RMSE_crop <- calculate.RMSE.class(trainingOri, trainingPred,1)
-RMSE_for <- calculate.RMSE.class(trainingOri, trainingPred,2)
-RMSE_wet <- calculate.RMSE.class(trainingOri, trainingPred,3)
 ```
 
 And printed to compare them:
