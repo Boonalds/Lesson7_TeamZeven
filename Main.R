@@ -1,4 +1,4 @@
-# Authors: Rob Maas & Wilmar van Ommeren
+# Authors: Rob Maas & Wilmar van Ommeren of TeamZeven
 # Date: 13-1-2015
 
 # Load libraries:
@@ -42,7 +42,7 @@ legend(0.37, 100, box.col='white', legend=c("Band 1", "Band 5", "Band 7"), fill=
 model157 <- lm(VCF ~ Band1+Band5+Band7, rasterbrickData, na.action=na.omit)
 modelAll <- lm(VCF ~ Band1+Band2+Band3+Band4+Band5+Band7, rasterbrickData, na.action=na.omit)
 
-# summary(model157)
+summary(model157)
 # summary(modelAll) 
 
 # Predicting VCF based on linear regression model
